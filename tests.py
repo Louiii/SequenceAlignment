@@ -57,7 +57,7 @@ import time, sys
 
 data = dict()# dp, ln, blast, checkdp, checkln, lndpcheck, checkblast, %blast
 ap, sm = "ABCD", [[ 1,-5,-5,-5,-1],[-5, 1,-5,-5,-1],[-5,-5, 5,-5,-4],[-5,-5,-5, 6,-4],[-1,-1,-4,-4,-9]]
-for length in [10]+[500*i for i in range(1, 20)]:#[20, 50, 100, 150, 200, 250, 400, 500, 1000, 2000, 3000, 10000][:-4]:
+for length in [10]+[500*i for i in range(1, 14)]:#[20, 50, 100, 150, 200, 250, 400, 500, 1000, 2000, 3000, 10000][:-4]:
     a, b = generateDNA(ap, length)
 #    print((a, b))
     print("SEQUENCE LENGTHS: ",str(length))
@@ -119,6 +119,39 @@ print([[v[3], v[4], v[5], v[6]] for k, v in data.items()])
 print('perc optimality')
 print([v[7] for k, v in data.items()])
 
+
+
+def timeheuralign(alphabet, scoring_matrix, sequence1, sequence2, word_length=3, bandwidth=18):
+    if len(sequence1) >= len(sequence2):
+        b = BLAST(alphabet, scoring_matrix, sequence1, sequence2, word_length, bandwidth)
+        return b.time_break_down_align(), b.times
+    else:
+        b = BLAST(alphabet, scoring_matrix, sequence2, sequence1, word_length, bandwidth)
+        [score, path1, path2] = b.time_break_down_align()
+        return [score, path2, path1], b.times
+
+data = dict()# dp, ln, blast, checkdp, checkln, lndpcheck, checkblast, %blast
+ap, sm = "ABCD", [[ 1,-5,-5,-5,-1],[-5, 1,-5,-5,-1],[-5,-5, 5,-5,-4],[-5,-5,-5, 6,-4],[-1,-1,-4,-4,-9]]
+for length in [5, 2000, 4000, 8000, 12000, 16000, 20000, 30000]:#[10]+[500*i for i in range(1, 10)]:#[20, 50, 100, 150, 200, 250, 400, 500, 1000, 2000, 3000, 10000][:-4]:
+   a, b = generateDNA(ap, length)
+   print("SEQUENCE LENGTHS: ",str(length))
+   
+   [schr, ph1, ph2], times = timeheuralign(ap, sm, a, b)
+   
+   data[length] = times
+
+labels = ['0', '1', '2', '3', 'Find seeds heuristic', '5', '6', 'Banded DP']
+x = np.sort(np.array(list(data.keys())))
+Y = [[data[key][i] for key in x] for i in range(8)]
+for i in [4, 7]:
+   plt.plot(x, Y[i], label=labels[i])
+#plt.plot([x[0], x[-1]], [Y[0], Y[-1]], 'r--', label='line')
+plt.xlabel('Length of sequences')
+plt.ylabel('Time of algorithms')
+plt.title('Time profiling')
+plt.legend()
+plt.savefig('TimeComplexityBreakdown', dpi=400)
+plt.show()
 
 
 

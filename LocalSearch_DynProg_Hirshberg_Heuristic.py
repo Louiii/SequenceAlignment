@@ -491,6 +491,40 @@ class BLAST:
         diags = [diag for (diag, _) in diags]
 
         return self.FASTA(diags)
+
+    def time_break_down_align(self):
+        import time
+        now = time.time()
+        self.times = [now]
+        self.makeSeq2Lookup(self.k)# time index 1
+        now = time.time()
+        self.times.append(now)
+        self.dictionary = product(self.k, self.alp, [''])# time index 2
+        now = time.time()
+        self.times.append(now)
+        self.makeSeq1Lookup(self.k)# time index 1
+        now = time.time()
+        self.times.append(now)
+        self.find_seeds_heuristic()
+#        self.find_seeds()# time index 4      <------------
+        now = time.time()
+        self.times.append(now)
+        self.prune_seeds()# time index 5      <------------
+        now = time.time()
+        self.times.append(now)
+        diags = self.highScPs()# time index 6      <------------
+        now = time.time()
+        self.times.append(now)
+        diags = sorted(diags, key=lambda x: x[1])[-10:]
+        diags = [diag for (diag, _) in diags]
+        
+        thing = self.FASTA(diags)# time index 7      <------------
+        now = time.time()
+        self.times.append(now)
+        t0 = self.times[0]
+        self.times = [t-t0 for t in self.times]
+#        print(self.times)
+        return thing
       
 def product(k, alphabet, current):
     if k==0:return current
