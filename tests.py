@@ -1,4 +1,5 @@
 import numpy as np
+from LocalSearch_DynProg_Hirshberg_Heuristic import *
 
 a1, m1 = "ABC", [[1,-1,-2,-1],[-1,2,-4,-1],[-2,-4,3,-2],[-1,-1,-2,0]]
 a2, m2 = "ABCD",[[ 1,-5,-5,-5,-1],[-5, 1,-5,-5,-1],[-5,-5, 5,-5,-4],[-5,-5,-5, 6,-4],[-1,-1,-4,-4,-9]]
@@ -26,44 +27,98 @@ def generateDNA(alphabet, length):
         b[i1:i2] = a[i1:i2]
     return ''.join(a), ''.join(b)
 
-def check_indices(alphabet, scoring_matrix, sequence1, sequence2, path1, path2, score_to_check=None):
+def check_indices(alphabet, scoring_matrix, sequence1, sequence2, path1, path2):
     scoring_matrix = np.array(scoring_matrix)
     index = {i: alphabet.index(i) for i in alphabet}
     index['_'] = len(alphabet)
 
     score = 0
     x, y = path1[0], path2[0]
-    
-#    aligned1, aligned2 = sequence1[x], sequence2[y]
+
     for c in range(len(path1)):
         i = path1[c]
         j = path2[c]
-        
-#        aligned1 += sequence1[x]
-#        aligned2 += sequence2[y]
-
         while x < i:
             score += scoring_matrix[index[sequence1[x]], index['_']]
             x += 1
-            
-#            if x == i: break
-#            aligned1 += sequence1[x]
-#            aligned2 += '_'
-
         while y < j:
             score += scoring_matrix[index[sequence2[y]], index['_']]
             y += 1
-            
-#            if y == j: break
-#            aligned2 += sequence2[y]
-#            aligned1 += '_'
-
         score += scoring_matrix[index[sequence1[i]], index[sequence2[j]]]
         
         x += 1
         y += 1
         
+    return score
+
+
+
+import time, sys
+
+data = dict()# dp, ln, blast, checkdp, checkln, lndpcheck, checkblast, %blast
+ap, sm = "ABCD", [[ 1,-5,-5,-5,-1],[-5, 1,-5,-5,-1],[-5,-5, 5,-5,-4],[-5,-5,-5, 6,-4],[-1,-1,-4,-4,-9]]
+for length in [10]+[500*i for i in range(1, 20)]:#[20, 50, 100, 150, 200, 250, 400, 500, 1000, 2000, 3000, 10000][:-4]:
+    a, b = generateDNA(ap, length)
+#    print((a, b))
+    print("SEQUENCE LENGTHS: ",str(length))
     
-#    print('Aligned sequences:\n',str(aligned1),'\n', str(aligned2))
-    if score_to_check is not None:
-        print(str(score), ' is the correct score!' if score == score_to_check else ' is NOT the correct score!')
+    sys.stdout.write('Running quad space...')
+    start = time.time()
+    scdp, p1, p2 = dynprog(ap, sm, a, b)
+    end = time.time()
+    dptime = end - start
+    sys.stdout.write(str('Done in '+str(dptime)+' seconds\nRunning lin space...'))
+
+    start = time.time()
+    scln, pl1, pl2 = dynproglin(ap, sm, a, b)
+    end = time.time()
+    lntime = end - start
+    sys.stdout.write(str('Done in '+str(lntime)+' seconds\nChecking indices...'))
+    cdp = check_indices(ap, sm, a, b, p1, p2)
+    cln = check_indices(ap, sm, a, b, pl1, pl2)
+    print((scdp, scln, cdp, cln))
+    toPrint1 = 'is correct.' if cdp==scdp else 'Failed!'
+    toPrint2 = 'is correct.' if cdp==scln else 'Failed!'
+    print('QuadTime: '+toPrint1+'\nLinSpace: '+toPrint2)
+    
+    sys.stdout.write('Running BLAST...')
+    start = time.time()
+    schr, ph1, ph2 = heuralign(ap, sm, a, b)
+    end = time.time()
+    bstime = end - start
+    sys.stdout.write(str('Done in '+str(bstime)+' seconds\n'))
+    ch = check_indices(ap, sm, a, b, ph1, ph2)
+    print('BLAST paths are valid.') if ch==schr else print('BLAST paths are invalid!')
+    print('BLAST score: ',str(schr), ', % of optimal: ', str(round(100*schr/scdp)),'%\n\n')
+
+    dpcheck = True if cdp==scdp else False
+    lncheck = True if cln==scln else False
+    lndpcheck = True if cdp==scln else False
+    blastcheck = True if ch==schr else False
+    
+    data[length] = (dptime, lntime, bstime, dpcheck, lncheck, lndpcheck, blastcheck, 100*schr/scdp)
+
+
+import matplotlib.pyplot as plt
+x = np.sort(np.array(list(data.keys())))
+Y = np.array([[data[key][0], data[key][1], data[key][2]] for key in x])
+plt.plot(x, Y[:, 0], 'rx--', label='Quad space')
+plt.plot(x, Y[:, 1], 'gx--', label='Linear space')
+plt.plot(x, Y[:, 2], 'bx--', label='BLAST')
+plt.xlabel('Length of sequences')
+plt.ylabel('Time of algorithms')
+plt.title('Time profiling')
+plt.legend()
+plt.savefig('TimeComplexity', dpi=400)
+plt.show()
+
+
+print('checks')
+print([[v[3], v[4], v[5], v[6]] for k, v in data.items()])
+
+print('perc optimality')
+print([v[7] for k, v in data.items()])
+
+
+
+

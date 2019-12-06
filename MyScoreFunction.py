@@ -30,8 +30,7 @@ class MyCostFn(Alignment):
         [i, j] = loc_mx_crds
         alignment = []
         dir_, prev_dir = -1, -1
-#        print('backtracing...')
-        while dir_ != 2:# 2==' '
+        while dir_ != 2:
             dir_ = self.ptrs[i, j]
             if prev_dir == 3:
                 alignment.append( (i, j) )
@@ -107,21 +106,6 @@ class MyCostFn(Alignment):
                 loc_mx_crds = [np.argmax(self.matrix[:, j]), j]
                 
         return self.backtrack(loc_mx_crds)
-    
-#a = 'CAABCCCCCCBACC'
-#b = 'CAABBACC'
-a = 'ABCABCABCCCCCCCBBBBBCCCAAACACABBBBBBBBB'
-b = 'ABCABCBBBBBB'
-
-m = MyCostFn()
-[s, p1, p2] = m.align(a, b)
-
-
-from tests import check_indices
-print('a = ',str(a),'\nb = ',str(b),'\n')
-check_indices("ABC", [[2,-2,-2,-3],[-2,2,-2,-3],[-2,-2,2,-3],[-3,-3,-3,0]], a, b, p1, p2, return_alignment=True)
-
-
 
 
 
